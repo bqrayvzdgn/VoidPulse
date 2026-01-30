@@ -20,6 +20,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Node
+node_modules/
+.next/
+
 # Build
 publish/
 out/
@@ -30,6 +34,10 @@ TestResults/
 # Docker volumes
 pgdata/
 redisdata/
+
+# Claude
+.claude/
+CLAUDE.md
 
 # Temp
 *.log

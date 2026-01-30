@@ -6,4 +6,5 @@ public interface IRoleRepository : IRepository<Role>
 {
     Task<Role?> GetByNameAsync(string name);
     Task AddUserRoleAsync(Guid userId, Guid roleId);
+    Task RemoveUserRolesAsync(Guid userId);
 }

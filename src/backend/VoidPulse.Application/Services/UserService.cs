@@ -12,17 +12,20 @@ namespace VoidPulse.Application.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IMapper _mapper;
     private readonly IValidator<CreateUserRequest> _createValidator;
 
     public UserService(
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
         IPasswordHasher passwordHasher,
         IMapper mapper,
         IValidator<CreateUserRequest> createValidator)
     {
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
         _passwordHasher = passwordHasher;
         _mapper = mapper;
         _createValidator = createValidator;
@@ -74,16 +77,10 @@ public class UserService : IUserService
 
         await _userRepository.AddAsync(user);
 
-        // Roles are typically managed through a separate mechanism (RoleRepository)
-        // For now, we return the requested roles
-        return new UserResponse(
-            user.Id,
-            user.Email,
-            user.FullName,
-            user.IsActive,
-            request.Roles,
-            user.LastLoginAt,
-            user.CreatedAt);
+        await AssignRolesAsync(user.Id, request.Roles);
+
+        var savedUser = await _userRepository.GetByIdAsync(user.Id);
+        return MapToResponse(savedUser!);
     }
 
     public async Task<UserResponse> UpdateAsync(Guid id, Guid tenantId, UpdateUserRequest request)
@@ -104,7 +101,14 @@ public class UserService : IUserService
 
         await _userRepository.UpdateAsync(user);
 
-        return MapToResponse(user);
+        if (request.Roles is not null)
+        {
+            await _roleRepository.RemoveUserRolesAsync(id);
+            await AssignRolesAsync(id, request.Roles);
+        }
+
+        var updatedUser = await _userRepository.GetByIdAsync(id);
+        return MapToResponse(updatedUser!);
     }
 
     public async Task DeleteAsync(Guid id, Guid tenantId)
@@ -116,6 +120,18 @@ public class UserService : IUserService
             throw new NotFoundException(nameof(User), id);
 
         await _userRepository.DeleteAsync(id);
+    }
+
+    private async Task AssignRolesAsync(Guid userId, List<string> roleNames)
+    {
+        foreach (var roleName in roleNames)
+        {
+            var role = await _roleRepository.GetByNameAsync(roleName);
+            if (role is not null)
+            {
+                await _roleRepository.AddUserRoleAsync(userId, role.Id);
+            }
+        }
     }
 
     private static UserResponse MapToResponse(User user)

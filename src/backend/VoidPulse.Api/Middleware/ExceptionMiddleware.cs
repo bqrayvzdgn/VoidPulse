@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using VoidPulse.Application.Common;
 using VoidPulse.Domain.Exceptions;
 
@@ -57,6 +58,10 @@ public class ExceptionMiddleware
                         Field = e.PropertyName,
                         Message = e.ErrorMessage
                     }).ToList())),
+
+            DbUpdateException ex => (
+                HttpStatusCode.Conflict,
+                ApiResponse<object>.Fail("CONFLICT", "A record with the same unique values already exists.")),
 
             _ => HandleUnexpectedException(exception)
         };

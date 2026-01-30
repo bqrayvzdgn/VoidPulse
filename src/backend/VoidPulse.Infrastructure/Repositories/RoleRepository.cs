@@ -26,4 +26,11 @@ public class RoleRepository : Repository<Role>, IRoleRepository
         Context.UserRoles.Add(userRole);
         await Context.SaveChangesAsync();
     }
+
+    public async Task RemoveUserRolesAsync(Guid userId)
+    {
+        var userRoles = await Context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
+        Context.UserRoles.RemoveRange(userRoles);
+        await Context.SaveChangesAsync();
+    }
 }
