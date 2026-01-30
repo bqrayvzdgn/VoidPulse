@@ -1,0 +1,10 @@
+.git
+.agentforge
+**/bin
+**/obj
+**/.vs
+**/node_modules
+*.md
+!README.md
+.env
+docker-compose*.yml

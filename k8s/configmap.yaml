@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: voidpulse
+  labels:
+    app: backend
+    app.kubernetes.io/name: voidpulse
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  CORS__AllowedOrigins: "https://voidpulse.local"
+  REDIS_URL: "redis:6379"

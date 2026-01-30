@@ -1,0 +1,36 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.csproj.user
+*.vs/
+.vscode/
+
+# Environment
+.env
+appsettings.*.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.idea/
+*.swp
+*.swo
+
+# Build
+publish/
+out/
+
+# Test results
+TestResults/
+
+# Docker volumes
+pgdata/
+redisdata/
+
+# Temp
+*.log
+test_endpoints.sh
