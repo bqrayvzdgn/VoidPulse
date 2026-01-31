@@ -1,6 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -34,6 +36,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
         services.AddScoped<ISavedFilterService, SavedFilterService>();
+        services.AddScoped<IAlertService, AlertService>();
+        services.AddScoped<IAlertEvaluator, AlertEvaluator>();
+        services.AddScoped<ITrafficNotifier, Api.Services.SignalRTrafficNotifier>();
+        services.AddScoped<IPacketService, PacketService>();
 
         return services;
     }
@@ -55,6 +61,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITrafficFlowRepository, TrafficFlowRepository>();
         services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
         services.AddScoped<ISavedFilterRepository, SavedFilterRepository>();
+        services.AddScoped<IDnsResolutionRepository, DnsResolutionRepository>();
+        services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
+        services.AddScoped<IAlertRepository, AlertRepository>();
+        services.AddScoped<ICapturedPacketRepository, CapturedPacketRepository>();
 
         // Password hasher
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
@@ -70,6 +80,13 @@ public static class ServiceCollectionExtensions
                 ConnectionMultiplexer.Connect(redisConnectionString));
             services.AddScoped<ICacheService, RedisCacheService>();
         }
+        else
+        {
+            services.AddSingleton<ICacheService, NullCacheService>();
+        }
+
+        // Background services
+        services.AddHostedService<RetentionCleanupService>();
 
         return services;
     }
@@ -91,7 +108,7 @@ public static class ServiceCollectionExtensions
         })
         .AddJwtBearer(options =>
         {
-            options.RequireHttpsMetadata = true;
+            options.RequireHttpsMetadata = false;
             options.SaveToken = true;
             options.TokenValidationParameters = new TokenValidationParameters
             {
@@ -102,6 +119,21 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidAudience = "VoidPulse",
                 ClockSkew = TimeSpan.Zero
+            };
+
+            // Allow SignalR to receive the JWT token via query string
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 
@@ -136,6 +168,48 @@ public static class ServiceCollectionExtensions
                     .AllowCredentials();
             });
         });
+
+        // Rate limiting
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddFixedWindowLimiter("global", opt =>
+            {
+                opt.PermitLimit = 100;
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.QueueLimit = 0;
+            });
+
+            options.AddFixedWindowLimiter("auth", opt =>
+            {
+                opt.PermitLimit = 10;
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.QueueLimit = 0;
+            });
+
+            options.AddFixedWindowLimiter("ingest", opt =>
+            {
+                opt.PermitLimit = 1000;
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.QueueLimit = 10;
+            });
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                await context.HttpContext.Response.WriteAsync(
+                    "{\"success\":false,\"error\":{\"code\":\"RATE_LIMIT_EXCEEDED\",\"message\":\"Too many requests. Please try again later.\"},\"data\":null,\"meta\":null}",
+                    cancellationToken);
+            };
+        });
+
+        // SignalR
+        services.AddSignalR()
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+            });
 
         // Controllers
         services.AddControllers();

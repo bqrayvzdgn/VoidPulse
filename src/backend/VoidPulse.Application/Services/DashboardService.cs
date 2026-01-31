@@ -31,18 +31,14 @@ public class DashboardService : IDashboardService
 
         var (startDate, endDate) = ParsePeriod(period);
 
-        var (flows, totalCount) = await _trafficFlowRepository.QueryAsync(
-            tenantId, null, null, null, startDate, endDate, null, null, 1, int.MaxValue);
-
-        var totalBytes = flows.Sum(f => f.BytesSent + f.BytesReceived);
-        var uniqueSourceIps = flows.Select(f => f.SourceIp).Distinct().Count();
-        var uniqueDestIps = flows.Select(f => f.DestinationIp).Distinct().Count();
+        var (totalFlows, totalBytes, uniqueSourceIps, uniqueDestIps) =
+            await _trafficFlowRepository.GetOverviewStatsAsync(tenantId, startDate, endDate);
 
         var agentKeys = await _agentKeyRepository.GetByTenantAsync(tenantId);
         var activeAgents = agentKeys.Count(a => a.IsActive);
 
         var result = new OverviewResponse(
-            totalCount,
+            totalFlows,
             totalBytes,
             activeAgents,
             uniqueSourceIps,
@@ -52,26 +48,19 @@ public class DashboardService : IDashboardService
         return result;
     }
 
-    public async Task<TopTalkersResponse> GetTopTalkersAsync(Guid tenantId, string period)
+    public async Task<TopTalkersResponse> GetTopTalkersAsync(Guid tenantId, string period, int limit = 10)
     {
-        var cacheKey = $"dashboard:top-talkers:{tenantId}:{period}";
+        var cacheKey = $"dashboard:top-talkers:{tenantId}:{period}:{limit}";
         var cached = await _cacheService.GetAsync<TopTalkersResponse>(cacheKey);
         if (cached is not null)
             return cached;
 
         var (startDate, endDate) = ParsePeriod(period);
 
-        var (flows, _) = await _trafficFlowRepository.QueryAsync(
-            tenantId, null, null, null, startDate, endDate, null, null, 1, int.MaxValue);
+        var talkers = await _trafficFlowRepository.GetTopTalkersAsync(tenantId, startDate, endDate, limit);
 
-        var entries = flows
-            .GroupBy(f => f.SourceIp)
-            .Select(g => new TalkerEntry(
-                g.Key,
-                g.Sum(f => f.BytesSent + f.BytesReceived),
-                g.Count()))
-            .OrderByDescending(e => e.TotalBytes)
-            .Take(10)
+        var entries = talkers
+            .Select(t => new TalkerEntry(t.Ip, t.TotalBytes, t.FlowCount))
             .ToList();
 
         var result = new TopTalkersResponse(entries);
@@ -89,20 +78,16 @@ public class DashboardService : IDashboardService
 
         var (startDate, endDate) = ParsePeriod(period);
 
-        var (flows, _) = await _trafficFlowRepository.QueryAsync(
-            tenantId, null, null, null, startDate, endDate, null, null, 1, int.MaxValue);
+        var protocols = await _trafficFlowRepository.GetProtocolDistributionAsync(tenantId, startDate, endDate);
 
-        var totalBytes = flows.Sum(f => f.BytesSent + f.BytesReceived);
+        var totalBytes = protocols.Sum(p => p.TotalBytes);
 
-        var entries = flows
-            .GroupBy(f => f.Protocol)
-            .Select(g =>
+        var entries = protocols
+            .Select(p =>
             {
-                var groupBytes = g.Sum(f => f.BytesSent + f.BytesReceived);
-                var percentage = totalBytes > 0 ? (double)groupBytes / totalBytes * 100.0 : 0.0;
-                return new ProtocolEntry(g.Key, groupBytes, g.Count(), Math.Round(percentage, 2));
+                var percentage = totalBytes > 0 ? (double)p.TotalBytes / totalBytes * 100.0 : 0.0;
+                return new ProtocolEntry(p.Protocol, p.TotalBytes, p.FlowCount, Math.Round(percentage, 2));
             })
-            .OrderByDescending(e => e.TotalBytes)
             .ToList();
 
         var result = new ProtocolDistributionResponse(entries);
@@ -120,21 +105,55 @@ public class DashboardService : IDashboardService
 
         var (startDate, endDate) = ParsePeriod(period);
 
-        var (flows, _) = await _trafficFlowRepository.QueryAsync(
-            tenantId, null, null, null, startDate, endDate, null, null, 1, int.MaxValue);
+        var timeline = await _trafficFlowRepository.GetBandwidthTimelineAsync(tenantId, startDate, endDate);
 
-        var entries = flows
-            .GroupBy(f => new DateTime(f.StartedAt.Year, f.StartedAt.Month, f.StartedAt.Day,
-                f.StartedAt.Hour, 0, 0, DateTimeKind.Utc))
-            .Select(g => new BandwidthEntry(
-                g.Key,
-                g.Sum(f => f.BytesSent),
-                g.Sum(f => f.BytesReceived),
-                g.Sum(f => f.BytesSent + f.BytesReceived)))
-            .OrderBy(e => e.Timestamp)
+        var entries = timeline
+            .Select(t => new BandwidthEntry(t.Hour, t.BytesSent, t.BytesReceived, t.BytesSent + t.BytesReceived))
             .ToList();
 
         var result = new BandwidthResponse(entries);
+
+        await _cacheService.SetAsync(cacheKey, result, CacheTtl);
+        return result;
+    }
+
+    public async Task<SitesResponse> GetTopSitesAsync(Guid tenantId, string period, int limit = 20)
+    {
+        var cacheKey = $"dashboard:sites:{tenantId}:{period}:{limit}";
+        var cached = await _cacheService.GetAsync<SitesResponse>(cacheKey);
+        if (cached is not null)
+            return cached;
+
+        var (startDate, endDate) = ParsePeriod(period);
+
+        var sites = await _trafficFlowRepository.GetTopSitesAsync(tenantId, startDate, endDate, limit);
+
+        var entries = sites
+            .Select(s => new SiteEntry(s.Hostname, s.TotalBytes, s.FlowCount, s.LastSeen))
+            .ToList();
+
+        var result = new SitesResponse(entries, entries.Count);
+
+        await _cacheService.SetAsync(cacheKey, result, CacheTtl);
+        return result;
+    }
+
+    public async Task<ProcessesResponse> GetTopProcessesAsync(Guid tenantId, string period, int limit = 20)
+    {
+        var cacheKey = $"dashboard:processes:{tenantId}:{period}:{limit}";
+        var cached = await _cacheService.GetAsync<ProcessesResponse>(cacheKey);
+        if (cached is not null)
+            return cached;
+
+        var (startDate, endDate) = ParsePeriod(period);
+
+        var processes = await _trafficFlowRepository.GetTopProcessesAsync(tenantId, startDate, endDate, limit);
+
+        var entries = processes
+            .Select(p => new ProcessEntry(p.ProcessName, p.TotalBytes, p.FlowCount, p.LastSeen))
+            .ToList();
+
+        var result = new ProcessesResponse(entries, entries.Count);
 
         await _cacheService.SetAsync(cacheKey, result, CacheTtl);
         return result;
@@ -151,7 +170,7 @@ public class DashboardService : IDashboardService
             "7d" => endDate.AddDays(-7),
             "30d" => endDate.AddDays(-30),
             "90d" => endDate.AddDays(-90),
-            _ => endDate.AddHours(-24) // Default to 24 hours
+            _ => endDate.AddHours(-24)
         };
 
         return (startDate, endDate);

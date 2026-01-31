@@ -32,7 +32,8 @@ async function refreshAccessToken(): Promise<boolean> {
 
 async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
+  _retried = false
 ): Promise<ApiResponse<T>> {
   const token = getAccessToken();
   const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -44,18 +45,19 @@ async function fetchApi<T>(
     },
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !_retried) {
     if (!isRefreshing) {
       isRefreshing = true;
-      refreshPromise = refreshAccessToken();
+      refreshPromise = refreshAccessToken().finally(() => {
+        isRefreshing = false;
+        refreshPromise = null;
+      });
     }
 
     const refreshed = await refreshPromise;
-    isRefreshing = false;
-    refreshPromise = null;
 
     if (refreshed) {
-      return fetchApi<T>(endpoint, options);
+      return fetchApi<T>(endpoint, options, true);
     }
     redirectToLogin();
     return { success: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Session expired', details: null }, meta: null };

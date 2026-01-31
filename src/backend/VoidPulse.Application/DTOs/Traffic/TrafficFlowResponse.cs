@@ -14,6 +14,9 @@ public record TrafficFlowResponse(
     DateTime StartedAt,
     DateTime EndedAt,
     double FlowDuration,
+    string? ProcessName,
+    string? ResolvedHostname,
+    string? TlsSni,
     HttpMetadataResponse? HttpMetadata,
     DateTime CreatedAt);
 

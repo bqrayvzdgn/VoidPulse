@@ -20,6 +20,10 @@ public class AppDbContext : DbContext
     public DbSet<AgentKey> AgentKeys => Set<AgentKey>();
     public DbSet<RetentionPolicy> RetentionPolicies => Set<RetentionPolicy>();
     public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
+    public DbSet<DnsResolution> DnsResolutions => Set<DnsResolution>();
+    public DbSet<AlertRule> AlertRules => Set<AlertRule>();
+    public DbSet<Alert> Alerts => Set<Alert>();
+    public DbSet<CapturedPacket> CapturedPackets => Set<CapturedPacket>();
 
     public void SetTenantId(Guid tenantId)
     {

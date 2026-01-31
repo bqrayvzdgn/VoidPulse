@@ -49,6 +49,15 @@ public class TrafficFlowConfiguration : IEntityTypeConfiguration<TrafficFlow>
         builder.Property(tf => tf.FlowDuration)
             .IsRequired();
 
+        builder.Property(tf => tf.ProcessName)
+            .HasMaxLength(256);
+
+        builder.Property(tf => tf.ResolvedHostname)
+            .HasMaxLength(512);
+
+        builder.Property(tf => tf.TlsSni)
+            .HasMaxLength(512);
+
         builder.HasIndex(tf => tf.TenantId);
 
         builder.HasIndex(tf => new { tf.SourceIp, tf.DestinationIp });
@@ -56,6 +65,11 @@ public class TrafficFlowConfiguration : IEntityTypeConfiguration<TrafficFlow>
         builder.HasIndex(tf => new { tf.StartedAt, tf.EndedAt });
 
         builder.HasIndex(tf => tf.Protocol);
+
+        // Composite indexes for dashboard and filtered queries
+        builder.HasIndex(tf => new { tf.TenantId, tf.StartedAt });
+        builder.HasIndex(tf => new { tf.TenantId, tf.Protocol });
+        builder.HasIndex(tf => new { tf.TenantId, tf.AgentKeyId });
 
         builder.HasOne(tf => tf.Tenant)
             .WithMany(t => t.TrafficFlows)

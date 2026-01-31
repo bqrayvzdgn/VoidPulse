@@ -37,3 +37,27 @@ export interface BandwidthEntry {
   bytesReceived: number;
   totalBytes: number;
 }
+
+export interface SitesResponse {
+  sites: SiteEntry[];
+  totalSites: number;
+}
+
+export interface SiteEntry {
+  hostname: string;
+  totalBytes: number;
+  flowCount: number;
+  lastSeen: string;
+}
+
+export interface ProcessesResponse {
+  processes: ProcessEntry[];
+  totalProcesses: number;
+}
+
+export interface ProcessEntry {
+  processName: string;
+  totalBytes: number;
+  flowCount: number;
+  lastSeen: string;
+}

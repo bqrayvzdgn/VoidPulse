@@ -35,8 +35,18 @@ public class TrafficFlow : BaseEntity
 
     public double FlowDuration { get; set; }
 
+    [MaxLength(256)]
+    public string? ProcessName { get; set; }
+
+    [MaxLength(512)]
+    public string? ResolvedHostname { get; set; }
+
+    [MaxLength(512)]
+    public string? TlsSni { get; set; }
+
     // Navigation properties
     public Tenant Tenant { get; set; } = null!;
     public AgentKey AgentKey { get; set; } = null!;
     public HttpMetadata? HttpMetadata { get; set; }
+    public ICollection<CapturedPacket> CapturedPackets { get; set; } = new List<CapturedPacket>();
 }

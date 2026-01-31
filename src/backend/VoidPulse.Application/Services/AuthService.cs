@@ -95,27 +95,15 @@ public class AuthService : IAuthService
     {
         await _loginValidator.ValidateAndThrowAsync(request);
 
-        // Try to find user across tenants by iterating - in production, consider tenant context
-        var allTenants = await _tenantRepository.GetAllAsync();
-        User? user = null;
-        Tenant? userTenant = null;
+        var user = await _userRepository.GetByEmailAsync(request.Email);
 
-        foreach (var tenant in allTenants)
-        {
-            user = await _userRepository.GetByEmailAsync(request.Email, tenant.Id);
-            if (user is not null)
-            {
-                userTenant = tenant;
-                break;
-            }
-        }
-
-        if (user is null || userTenant is null)
+        if (user is null)
             throw new UnauthorizedException("Invalid email or password.");
 
         if (!user.IsActive)
             throw new UnauthorizedException("User account is deactivated.");
 
+        var userTenant = user.Tenant;
         if (!userTenant.IsActive)
             throw new UnauthorizedException("Tenant is deactivated.");
 

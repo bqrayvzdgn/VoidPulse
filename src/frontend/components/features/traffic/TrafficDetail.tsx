@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useTrafficFlow } from '@/hooks/useTraffic';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -59,6 +60,41 @@ export function TrafficDetail({ id }: { id: string }) {
           </div>
         </dl>
       </Card>
+
+      {(data.processName || data.resolvedHostname || data.tlsSni) && (
+        <Card>
+          <CardHeader><CardTitle>Connection Info</CardTitle></CardHeader>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {data.processName && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Process</dt>
+                <dd className="mt-1 text-sm font-medium">{data.processName}</dd>
+              </div>
+            )}
+            {data.resolvedHostname && (
+              <div>
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Hostname</dt>
+                <dd className="mt-1 font-mono text-sm">{data.resolvedHostname}</dd>
+              </div>
+            )}
+            {data.tlsSni && (
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">TLS Server Name (SNI)</dt>
+                <dd className="mt-1 font-mono text-sm">{data.tlsSni}</dd>
+              </div>
+            )}
+          </dl>
+        </Card>
+      )}
+
+      <div>
+        <Link
+          href={`/dashboard/traffic/${id}/packets`}
+          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+        >
+          View Packets
+        </Link>
+      </div>
 
       {data.httpMetadata && (
         <Card>

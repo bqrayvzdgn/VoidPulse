@@ -12,7 +12,10 @@ public record IngestTrafficRequest(
     int PacketsReceived,
     DateTime StartedAt,
     DateTime EndedAt,
-    HttpMetadataDto? HttpMetadata);
+    HttpMetadataDto? HttpMetadata,
+    string? ProcessName = null,
+    string? Hostname = null,
+    string? TlsSni = null);
 
 public record HttpMetadataDto(
     string Method,

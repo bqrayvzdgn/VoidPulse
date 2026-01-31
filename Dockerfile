@@ -12,13 +12,15 @@ COPY src/backend/VoidPulse.Api/*.csproj ./VoidPulse.Api/
 COPY src/backend/VoidPulse.Application/*.csproj ./VoidPulse.Application/
 COPY src/backend/VoidPulse.Domain/*.csproj ./VoidPulse.Domain/
 COPY src/backend/VoidPulse.Infrastructure/*.csproj ./VoidPulse.Infrastructure/
-COPY src/backend/VoidPulse.Tests/*.csproj ./VoidPulse.Tests/
 
 # Restore dependencies
 RUN dotnet restore
 
-# Copy all source code
-COPY src/backend/. ./
+# Copy source code (exclude Tests)
+COPY src/backend/VoidPulse.Api/ ./VoidPulse.Api/
+COPY src/backend/VoidPulse.Application/ ./VoidPulse.Application/
+COPY src/backend/VoidPulse.Domain/ ./VoidPulse.Domain/
+COPY src/backend/VoidPulse.Infrastructure/ ./VoidPulse.Infrastructure/
 
 # Publish Release build
 RUN dotnet publish VoidPulse.Api/VoidPulse.Api.csproj \

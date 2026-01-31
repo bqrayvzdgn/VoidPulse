@@ -68,6 +68,243 @@ namespace VoidPulse.Infrastructure.Migrations
                     b.ToTable("AgentKeys");
                 });
 
+            modelBuilder.Entity("VoidPulse.Domain.Entities.Alert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AlertRuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DestinationIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<bool>("IsAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("TriggeredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertRuleId");
+
+                    b.HasIndex("TenantId", "IsAcknowledged");
+
+                    b.HasIndex("TenantId", "TriggeredAt");
+
+                    b.ToTable("Alerts");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.AlertRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Condition")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ThresholdJson")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "IsEnabled");
+
+                    b.ToTable("AlertRules");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.CapturedPacket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CapturedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DestinationIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<int>("DestinationPort")
+                        .HasColumnType("integer");
+
+                    b.Property<byte[]>("HeaderBytes")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Info")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("PacketLength")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Protocol")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("ProtocolStack")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<int>("SourcePort")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TrafficFlowId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TrafficFlowId");
+
+                    b.HasIndex("TenantId", "CapturedAt");
+
+                    b.HasIndex("TenantId", "SourceIp", "DestinationIp");
+
+                    b.ToTable("CapturedPackets");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.DnsResolution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("QueriedHostname")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("QueryType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResolvedIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Ttl")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "QueriedHostname");
+
+                    b.HasIndex("TenantId", "ResolvedAt");
+
+                    b.HasIndex("TenantId", "ResolvedIp");
+
+                    b.ToTable("DnsResolutions");
+                });
+
             modelBuilder.Entity("VoidPulse.Domain.Entities.HttpMetadata", b =>
                 {
                     b.Property<Guid>("Id")
@@ -338,10 +575,18 @@ namespace VoidPulse.Infrastructure.Migrations
                     b.Property<int>("PacketsSent")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ProcessName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Protocol")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("ResolvedHostname")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
 
                     b.Property<string>("SourceIp")
                         .IsRequired()
@@ -357,6 +602,10 @@ namespace VoidPulse.Infrastructure.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("TlsSni")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -371,6 +620,12 @@ namespace VoidPulse.Infrastructure.Migrations
                     b.HasIndex("SourceIp", "DestinationIp");
 
                     b.HasIndex("StartedAt", "EndedAt");
+
+                    b.HasIndex("TenantId", "AgentKeyId");
+
+                    b.HasIndex("TenantId", "Protocol");
+
+                    b.HasIndex("TenantId", "StartedAt");
 
                     b.ToTable("TrafficFlows");
                 });
@@ -450,6 +705,64 @@ namespace VoidPulse.Infrastructure.Migrations
                 {
                     b.HasOne("VoidPulse.Domain.Entities.Tenant", "Tenant")
                         .WithMany("AgentKeys")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.Alert", b =>
+                {
+                    b.HasOne("VoidPulse.Domain.Entities.AlertRule", "AlertRule")
+                        .WithMany("Alerts")
+                        .HasForeignKey("AlertRuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("VoidPulse.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AlertRule");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.AlertRule", b =>
+                {
+                    b.HasOne("VoidPulse.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.CapturedPacket", b =>
+                {
+                    b.HasOne("VoidPulse.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("VoidPulse.Domain.Entities.TrafficFlow", "TrafficFlow")
+                        .WithMany("CapturedPackets")
+                        .HasForeignKey("TrafficFlowId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("TrafficFlow");
+                });
+
+            modelBuilder.Entity("VoidPulse.Domain.Entities.DnsResolution", b =>
+                {
+                    b.HasOne("VoidPulse.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -552,6 +865,11 @@ namespace VoidPulse.Infrastructure.Migrations
                     b.Navigation("TrafficFlows");
                 });
 
+            modelBuilder.Entity("VoidPulse.Domain.Entities.AlertRule", b =>
+                {
+                    b.Navigation("Alerts");
+                });
+
             modelBuilder.Entity("VoidPulse.Domain.Entities.Role", b =>
                 {
                     b.Navigation("UserRoles");
@@ -572,6 +890,8 @@ namespace VoidPulse.Infrastructure.Migrations
 
             modelBuilder.Entity("VoidPulse.Domain.Entities.TrafficFlow", b =>
                 {
+                    b.Navigation("CapturedPackets");
+
                     b.Navigation("HttpMetadata");
                 });
 

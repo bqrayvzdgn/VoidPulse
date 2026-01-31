@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using VoidPulse.Application.Common;
 using VoidPulse.Application.DTOs.Auth;
 using VoidPulse.Application.Interfaces;
@@ -8,6 +9,7 @@ namespace VoidPulse.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;

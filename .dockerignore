@@ -4,7 +4,11 @@
 **/obj
 **/.vs
 **/node_modules
+**/.next
 *.md
 !README.md
 .env
+.env.*
 docker-compose*.yml
+tests/
+src/backend/VoidPulse.Tests/

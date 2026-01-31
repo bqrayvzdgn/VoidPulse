@@ -20,6 +20,15 @@ public class UserRepository : Repository<User>, IUserRepository
             .FirstOrDefaultAsync(u => u.Email == email && u.TenantId == tenantId);
     }
 
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await DbSet
+            .Include(u => u.Tenant)
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
+
     public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
     {
         return await DbSet

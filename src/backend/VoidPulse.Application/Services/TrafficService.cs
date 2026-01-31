@@ -15,15 +15,21 @@ public class TrafficService : ITrafficService
     private readonly ITrafficFlowRepository _trafficFlowRepository;
     private readonly IAgentKeyRepository _agentKeyRepository;
     private readonly IMapper _mapper;
+    private readonly ITrafficNotifier _trafficNotifier;
+    private readonly IAlertEvaluator _alertEvaluator;
 
     public TrafficService(
         ITrafficFlowRepository trafficFlowRepository,
         IAgentKeyRepository agentKeyRepository,
-        IMapper mapper)
+        IMapper mapper,
+        ITrafficNotifier trafficNotifier,
+        IAlertEvaluator alertEvaluator)
     {
         _trafficFlowRepository = trafficFlowRepository;
         _agentKeyRepository = agentKeyRepository;
         _mapper = mapper;
+        _trafficNotifier = trafficNotifier;
+        _alertEvaluator = alertEvaluator;
     }
 
     public async Task<TrafficFlowResponse> IngestAsync(Guid tenantId, Guid agentKeyId, IngestTrafficRequest request)
@@ -40,7 +46,10 @@ public class TrafficService : ITrafficService
         agentKey.LastUsedAt = DateTime.UtcNow;
         await _agentKeyRepository.UpdateAsync(agentKey);
 
-        return _mapper.Map<TrafficFlowResponse>(flow);
+        var response = _mapper.Map<TrafficFlowResponse>(flow);
+        await _trafficNotifier.NotifyFlowIngestedAsync(tenantId, response);
+        await _alertEvaluator.EvaluateFlowAsync(tenantId, response);
+        return response;
     }
 
     public async Task<IReadOnlyList<TrafficFlowResponse>> IngestBatchAsync(
@@ -58,7 +67,15 @@ public class TrafficService : ITrafficService
         agentKey.LastUsedAt = DateTime.UtcNow;
         await _agentKeyRepository.UpdateAsync(agentKey);
 
-        return _mapper.Map<IReadOnlyList<TrafficFlowResponse>>(flows);
+        var responses = _mapper.Map<IReadOnlyList<TrafficFlowResponse>>(flows);
+        await _trafficNotifier.NotifyBatchIngestedAsync(tenantId, responses);
+
+        foreach (var response in responses)
+        {
+            await _alertEvaluator.EvaluateFlowAsync(tenantId, response);
+        }
+
+        return responses;
     }
 
     public async Task<PagedResult<TrafficFlowResponse>> QueryAsync(Guid tenantId, TrafficQueryParams queryParams)
@@ -150,7 +167,10 @@ public class TrafficService : ITrafficService
             PacketsReceived = request.PacketsReceived,
             StartedAt = request.StartedAt,
             EndedAt = request.EndedAt,
-            FlowDuration = (request.EndedAt - request.StartedAt).TotalSeconds
+            FlowDuration = (request.EndedAt - request.StartedAt).TotalSeconds,
+            ProcessName = request.ProcessName,
+            ResolvedHostname = request.Hostname,
+            TlsSni = request.TlsSni
         };
 
         if (request.HttpMetadata is not null)
@@ -173,6 +193,10 @@ public class TrafficService : ITrafficService
 
     private static string EscapeCsv(string value)
     {
+        // Prevent CSV formula injection (=, +, -, @, tab, carriage return)
+        if (value.Length > 0 && "=+@-\t\r".Contains(value[0]))
+            value = "'" + value;
+
         if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
             return $"\"{value.Replace("\"", "\"\"")}\"";
         return value;

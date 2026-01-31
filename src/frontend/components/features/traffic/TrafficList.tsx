@@ -35,7 +35,19 @@ export function TrafficList() {
         <div>
           <span className="font-mono text-xs">{item.destinationIp}</span>
           <span className="text-gray-400">:{item.destinationPort}</span>
+          {(item.resolvedHostname || item.tlsSni) && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]" title={item.resolvedHostname || item.tlsSni}>
+              {item.tlsSni || item.resolvedHostname}
+            </div>
+          )}
         </div>
+      ),
+    },
+    {
+      key: 'process',
+      header: 'Process',
+      render: (item: any) => (
+        <span className="text-xs">{item.processName || '—'}</span>
       ),
     },
     {

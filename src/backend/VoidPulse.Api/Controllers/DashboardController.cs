@@ -34,7 +34,7 @@ public class DashboardController : ControllerBase
         [FromQuery] int limit = 10)
     {
         var tenantId = _currentUser.TenantId!.Value;
-        var result = await _dashboardService.GetTopTalkersAsync(tenantId, period);
+        var result = await _dashboardService.GetTopTalkersAsync(tenantId, period, limit);
         return Ok(ApiResponse<TopTalkersResponse>.Succeed(result));
     }
 
@@ -54,5 +54,25 @@ public class DashboardController : ControllerBase
         var tenantId = _currentUser.TenantId!.Value;
         var result = await _dashboardService.GetBandwidthAsync(tenantId, period);
         return Ok(ApiResponse<BandwidthResponse>.Succeed(result));
+    }
+
+    [HttpGet("sites")]
+    public async Task<ActionResult<ApiResponse<SitesResponse>>> GetTopSites(
+        [FromQuery] string period = "24h",
+        [FromQuery] int limit = 20)
+    {
+        var tenantId = _currentUser.TenantId!.Value;
+        var result = await _dashboardService.GetTopSitesAsync(tenantId, period, limit);
+        return Ok(ApiResponse<SitesResponse>.Succeed(result));
+    }
+
+    [HttpGet("processes")]
+    public async Task<ActionResult<ApiResponse<ProcessesResponse>>> GetTopProcesses(
+        [FromQuery] string period = "24h",
+        [FromQuery] int limit = 20)
+    {
+        var tenantId = _currentUser.TenantId!.Value;
+        var result = await _dashboardService.GetTopProcessesAsync(tenantId, period, limit);
+        return Ok(ApiResponse<ProcessesResponse>.Succeed(result));
     }
 }

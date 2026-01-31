@@ -12,6 +12,9 @@ export interface TrafficFlowResponse {
   startedAt: string;
   endedAt: string;
   flowDuration: number;
+  processName: string | null;
+  resolvedHostname: string | null;
+  tlsSni: string | null;
   httpMetadata: HttpMetadataResponse | null;
   createdAt: string;
 }
@@ -34,6 +37,39 @@ export interface TrafficQueryParams {
   endDate?: string;
   sortBy?: string;
   sortOrder?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CapturedPacketResponse {
+  id: string;
+  trafficFlowId: string | null;
+  capturedAt: string;
+  sourceIp: string;
+  destinationIp: string;
+  sourcePort: number;
+  destinationPort: number;
+  protocol: string;
+  packetLength: number;
+  headerBytesBase64: string;
+  protocolStack: ProtocolLayer[];
+  info: string;
+}
+
+export interface ProtocolLayer {
+  name: string;
+  offset: number;
+  length: number;
+  fields: Record<string, string>;
+}
+
+export interface PacketQueryParams {
+  sourceIp?: string;
+  destinationIp?: string;
+  protocol?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 }
