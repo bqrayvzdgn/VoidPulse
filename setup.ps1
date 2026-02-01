@@ -13,9 +13,11 @@ Write-Host "Generating secrets and configuration..."
 Write-Host ""
 
 # Generate random values
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+
 function Get-RandomString([int]$length) {
     $bytes = New-Object byte[] $length
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    $rng.GetBytes($bytes)
     $chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     $result = -join ($bytes | ForEach-Object { $chars[$_ % $chars.Length] })
     return $result
@@ -23,7 +25,7 @@ function Get-RandomString([int]$length) {
 
 function Get-AgentKey {
     $bytes = New-Object byte[] 48
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    $rng.GetBytes($bytes)
     $b64 = [Convert]::ToBase64String($bytes).Replace("+", "-").Replace("/", "_").TrimEnd("=")
     return "vp_$b64"
 }
