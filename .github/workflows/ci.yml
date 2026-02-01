@@ -22,10 +22,27 @@ jobs:
         run: dotnet restore src/backend/
 
       - name: Build
-        run: dotnet build src/backend/ --no-restore
+        run: dotnet build src/backend/ --no-restore --warnaserror
 
       - name: Test
         run: dotnet test src/backend/ --no-build --verbosity normal
+
+  agent:
+    name: Agent Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore src/agent/
+
+      - name: Build
+        run: dotnet build src/agent/ --no-restore
 
   frontend:
     name: Frontend Lint & Build
@@ -55,9 +72,53 @@ jobs:
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [backend]
+    needs: [backend, frontend, agent]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
+      - name: Build backend image
         run: docker build -t voidpulse-backend:ci .
+
+      - name: Build frontend image
+        run: docker build -t voidpulse-frontend:ci ./src/frontend
+
+      - name: Build agent image
+        run: docker build -t voidpulse-agent:ci ./src/agent
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, agent]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t voidpulse-backend:scan .
+
+      - name: Trivy scan backend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'voidpulse-backend:scan'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Build frontend image
+        run: docker build -t voidpulse-frontend:scan ./src/frontend
+
+      - name: Trivy scan frontend
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'voidpulse-frontend:scan'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
