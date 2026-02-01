@@ -39,10 +39,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore src/agent/
+        run: dotnet restore src/agent/VoidPulse.Agent/
 
       - name: Build
-        run: dotnet build src/agent/ --no-restore
+        run: dotnet build src/agent/VoidPulse.Agent/ --no-restore
 
   frontend:
     name: Frontend Lint & Build
