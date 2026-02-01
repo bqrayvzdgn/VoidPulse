@@ -39,6 +39,10 @@ redisdata/
 .claude/
 CLAUDE.md
 
+# AgentForge artifacts
+.agentforge/
+docs/agentforge/
+
 # Temp
 *.log
 test_endpoints.sh

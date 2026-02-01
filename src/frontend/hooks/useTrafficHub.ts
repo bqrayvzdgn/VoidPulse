@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
-import { getAccessToken } from '@/lib/auth';
+import { getAccessToken, getTenantIdFromToken } from '@/lib/auth';
 import { API_BASE } from '@/lib/constants';
 
 export interface LiveTrafficFlow {
@@ -26,17 +26,6 @@ export interface LiveTrafficFlow {
 }
 
 const MAX_FLOWS = 100;
-
-function getTenantIdFromToken(): string | null {
-  const token = getAccessToken();
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.tenant_id || null;
-  } catch {
-    return null;
-  }
-}
 
 export function useTrafficHub() {
   const [recentFlows, setRecentFlows] = useState<LiveTrafficFlow[]>([]);
@@ -63,6 +52,7 @@ export function useTrafficHub() {
   useEffect(() => {
     if (!tenantId) return;
 
+    let cancelled = false;
     const hubUrl = API_BASE.replace('/api/v1', '') + '/hubs/traffic';
 
     const connection = new HubConnectionBuilder()
@@ -70,52 +60,48 @@ export function useTrafficHub() {
         accessTokenFactory: () => getAccessToken() || '',
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-      .configureLogging(LogLevel.Information)
+      .configureLogging(LogLevel.Warning)
       .build();
 
     connectionRef.current = connection;
 
     connection.on('Pong', (data: unknown) => {
-      console.log('[SignalR] Pong received', data);
       setPongResult('Pong: ' + JSON.stringify(data));
     });
 
     connection.on('FlowIngested', (flow: LiveTrafficFlow) => {
-      console.log('[SignalR] FlowIngested received', flow);
       setRecentFlows(prev => [flow, ...prev].slice(0, MAX_FLOWS));
     });
 
     connection.on('BatchIngested', (flows: LiveTrafficFlow[]) => {
-      console.log('[SignalR] BatchIngested received', flows.length, 'flows');
       setRecentFlows(prev => [...flows.reverse(), ...prev].slice(0, MAX_FLOWS));
     });
 
+    // No-op handler for alert events broadcast to the tenant group
+    connection.on('AlertTriggered', () => {});
+
     connection.onreconnected(() => {
-      console.log('[SignalR] Reconnected');
       setIsConnected(true);
-      connection.invoke('JoinTenant', tenantId).catch(err => console.error('[SignalR] JoinTenant failed on reconnect', err));
+      connection.invoke('JoinTenant', tenantId).catch(() => {});
     });
 
-    connection.onclose((err) => {
-      console.log('[SignalR] Connection closed', err);
+    connection.onclose(() => {
       setIsConnected(false);
     });
 
-    console.log('[SignalR] Connecting to', hubUrl, 'tenant:', tenantId);
     connection
       .start()
       .then(() => {
-        console.log('[SignalR] Connected, joining tenant', tenantId);
+        if (cancelled) return;
         setIsConnected(true);
         return connection.invoke('JoinTenant', tenantId);
       })
-      .then(() => console.log('[SignalR] Joined tenant group'))
-      .catch(err => {
-        console.error('[SignalR] Connection failed', err);
+      .catch(() => {
         setIsConnected(false);
       });
 
     return () => {
+      cancelled = true;
       connection.stop();
       connectionRef.current = null;
     };

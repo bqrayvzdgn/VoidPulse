@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { api } from '@/lib/api';
-import { getAccessToken } from '@/lib/auth';
+import { getAccessToken, getTenantIdFromToken } from '@/lib/auth';
 import { API_BASE } from '@/lib/constants';
 import type {
   AlertRuleResponse,
@@ -96,17 +96,6 @@ export function useAcknowledgeAlert() {
 
 // --- SignalR hook for real-time alerts ---
 
-function getTenantIdFromToken(): string | null {
-  const token = getAccessToken();
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.tenant_id || null;
-  } catch {
-    return null;
-  }
-}
-
 export function useAlertHub() {
   const [recentAlerts, setRecentAlerts] = useState<AlertResponse[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -122,6 +111,7 @@ export function useAlertHub() {
   useEffect(() => {
     if (!tenantId) return;
 
+    let cancelled = false;
     const hubUrl = API_BASE.replace('/api/v1', '') + '/hubs/traffic';
 
     const connection = new HubConnectionBuilder()
@@ -139,16 +129,25 @@ export function useAlertHub() {
       queryClient.invalidateQueries({ queryKey: ['alerts', 'list'] });
     });
 
+    // Register no-op handlers for events broadcast to the tenant group
+    // to suppress "No client method" warnings from SignalR
+    connection.on('FlowIngested', () => {});
+    connection.on('BatchIngested', () => {});
+
     connection.onreconnected(() => {
       connection.invoke('JoinTenant', tenantId).catch(() => {});
     });
 
     connection
       .start()
-      .then(() => connection.invoke('JoinTenant', tenantId))
+      .then(() => {
+        if (cancelled) return;
+        return connection.invoke('JoinTenant', tenantId);
+      })
       .catch(() => {});
 
     return () => {
+      cancelled = true;
       connection.stop();
     };
   }, [tenantId, queryClient]);

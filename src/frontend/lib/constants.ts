@@ -1,4 +1,20 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+function getApiBase(): string {
+  // Server-side rendering: use env var or internal Docker URL
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  }
+
+  // Client-side: if env var was set at build time, use it
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Client-side fallback: derive from current browser URL
+  // Backend runs on same host, port 8080
+  return `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
+}
+
+export const API_BASE = getApiBase();
 
 export const ROLES = {
   SUPER_ADMIN: 'SuperAdmin',

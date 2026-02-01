@@ -41,6 +41,38 @@ Console.WriteLine($"Idle Timeout   : {idleTimeout}s");
 Console.WriteLine($"Packet Capture : {(enablePacketCapture ? "ENABLED" : "disabled")}");
 Console.WriteLine();
 
+// Wait for backend to be ready
+var healthUrl = apiUrl.Replace("/traffic/ingest/batch", "/health");
+Console.WriteLine($"Waiting for backend ({healthUrl})...");
+using var healthClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+for (int attempt = 1; attempt <= 30; attempt++)
+{
+    try
+    {
+        var response = await healthClient.GetAsync(healthUrl);
+        if (response.IsSuccessStatusCode)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Backend is ready!");
+            Console.ResetColor();
+            break;
+        }
+    }
+    catch { }
+
+    if (attempt == 30)
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("Backend not reachable after 30 attempts. Starting anyway...");
+        Console.ResetColor();
+    }
+    else
+    {
+        await Task.Delay(2000);
+    }
+}
+Console.WriteLine();
+
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {

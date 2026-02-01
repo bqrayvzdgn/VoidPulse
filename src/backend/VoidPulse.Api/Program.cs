@@ -20,11 +20,13 @@ builder.Services.AddApiServices(builder.Configuration);
 
 var app = builder.Build();
 
-// Apply pending migrations
+// Apply pending migrations and seed default data
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    await DataSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
 }
 
 // Middleware pipeline

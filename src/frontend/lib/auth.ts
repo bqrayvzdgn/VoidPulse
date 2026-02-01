@@ -43,3 +43,14 @@ export function redirectToLogin(): void {
     window.location.href = '/login';
   }
 }
+
+export function getTenantIdFromToken(): string | null {
+  const token = getAccessToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.tenant_id || null;
+  } catch {
+    return null;
+  }
+}

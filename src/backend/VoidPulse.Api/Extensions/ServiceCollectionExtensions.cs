@@ -154,7 +154,7 @@ public static class ServiceCollectionExtensions
         });
 
         // CORS
-        var allowedOrigins = configuration["Cors:AllowedOrigins"]?
+        var allowedOriginsConfig = configuration["Cors:AllowedOrigins"]?
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             ?? ["http://localhost:3000"];
 
@@ -162,10 +162,21 @@ public static class ServiceCollectionExtensions
         {
             options.AddPolicy("AllowConfiguredOrigins", builder =>
             {
-                builder.WithOrigins(allowedOrigins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
+                if (allowedOriginsConfig.Length == 1 && allowedOriginsConfig[0] == "*")
+                {
+                    // Allow any origin (plug-and-play mode)
+                    builder.SetIsOriginAllowed(_ => true)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
+                else
+                {
+                    builder.WithOrigins(allowedOriginsConfig)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                }
             });
         });
 

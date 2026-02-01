@@ -52,63 +52,62 @@ export function HexViewer({ data, highlightRange }: HexViewerProps) {
 
   return (
     <div className="h-full overflow-auto bg-white dark:bg-gray-950 p-2">
-      <pre className="font-mono text-xs leading-5 select-text">
-        {lines.map((line) => (
-          <div key={line.offset} className="flex">
-            {/* Offset column */}
-            <span className="text-gray-400 dark:text-gray-500 select-none w-12 shrink-0">
-              {line.offset.toString(16).padStart(4, '0')}
-            </span>
-            <span className="select-none w-4 shrink-0">{' '}</span>
+      <pre className="font-mono text-xs leading-5 select-text whitespace-pre">
+        {lines.map((line) => {
+          // Build hex part as array of spans
+          const hexParts: React.ReactNode[] = [];
+          for (let i = 0; i < 16; i++) {
+            const byteIndex = line.offset + i;
+            if (i < line.bytes.length) {
+              const highlighted = isHighlighted(byteIndex);
+              hexParts.push(
+                <span
+                  key={`h${i}`}
+                  className={cn(
+                    highlighted && 'bg-blue-200 dark:bg-blue-800 rounded-sm'
+                  )}
+                >
+                  {toHex(line.bytes[i])}
+                </span>
+              );
+            } else {
+              hexParts.push(<span key={`h${i}`}>{'  '}</span>);
+            }
+            // Separator: double space after byte 7, single space otherwise
+            if (i < 15) {
+              hexParts.push(<span key={`s${i}`}>{i === 7 ? '  ' : ' '}</span>);
+            }
+          }
 
-            {/* Hex bytes */}
-            <span className="shrink-0" style={{ width: '24.5ch' }}>
-              {Array.from({ length: 16 }, (_, i) => {
-                const byteIndex = line.offset + i;
-                if (i < line.bytes.length) {
-                  const highlighted = isHighlighted(byteIndex);
-                  return (
-                    <span key={i}>
-                      <span
-                        className={cn(
-                          highlighted && 'bg-blue-200 dark:bg-blue-800 rounded-sm'
-                        )}
-                      >
-                        {toHex(line.bytes[i])}
-                      </span>
-                      {i === 7 ? '  ' : ' '}
-                    </span>
-                  );
-                }
-                return (
-                  <span key={i}>
-                    {'  '}
-                    {i === 7 ? '  ' : ' '}
-                  </span>
-                );
-              })}
-            </span>
-            <span className="select-none w-4 shrink-0">{' '}</span>
+          // Build ASCII part
+          const asciiParts = Array.from(line.bytes).map((byte, i) => {
+            const byteIndex = line.offset + i;
+            const highlighted = isHighlighted(byteIndex);
+            return (
+              <span
+                key={`a${i}`}
+                className={cn(
+                  highlighted && 'bg-blue-200 dark:bg-blue-800 rounded-sm'
+                )}
+              >
+                {toAscii(byte)}
+              </span>
+            );
+          });
 
-            {/* ASCII column */}
-            <span className="text-gray-600 dark:text-gray-400">
-              {Array.from(line.bytes).map((byte, i) => {
-                const byteIndex = line.offset + i;
-                const highlighted = isHighlighted(byteIndex);
-                return (
-                  <span
-                    key={i}
-                    className={cn(
-                      highlighted && 'bg-blue-200 dark:bg-blue-800 rounded-sm'
-                    )}
-                  >
-                    {toAscii(byte)}
-                  </span>
-                );
-              })}
-            </span>
-          </div>
-        ))}
+          const offset = line.offset.toString(16).padStart(4, '0');
+
+          return (
+            <div key={line.offset}>
+              <span className="text-gray-400 dark:text-gray-500 select-none">{offset}</span>
+              {'  '}
+              {hexParts}
+              {'  '}
+              <span className="text-gray-600 dark:text-gray-400">{asciiParts}</span>
+              {'\n'}
+            </div>
+          );
+        })}
       </pre>
     </div>
   );
